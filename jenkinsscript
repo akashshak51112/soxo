@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+        environment {
+        DOCKER_IMAGE = 'my-app' 
+        DOCKER_TAG = 'latest'
+        DOCKER_REGISTRY = 'dockerregistryurl' 
+        DOCKER_CREDENTIALS = 'credentials'
+        
+    }
+
+    stages {
+        stage('git checkout') {
+            steps {
+                git branch: 'main',
+                credentialsId: '',
+                url: 'https://github.com/akashshak51112/soxo.git'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+
+                    sh '''
+                    docker build -t $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG .
+                    '''
+                }
+            }
+        }  
+        stage('Docker Push') {
+            steps {
+                script {
+                       withCredentials([usernamePassword(credentialsId: "$DOCKER_CREDENTIALS", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin $DOCKER_REGISTRY"
+                    }    
+
+                    sh '''
+                    docker push $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG
+                    '''
+                }
+            }
+        }         
+        
+    }
+}
+
+
